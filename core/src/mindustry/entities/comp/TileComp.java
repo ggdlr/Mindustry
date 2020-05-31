@@ -101,25 +101,29 @@ abstract class TileComp implements Posc, Teamc, Healthc, Tilec, Timerc, QuadTree
 
     //endregion
     //region io
+    public boolean hasItems() { return items != null; }
+    public boolean hasPower() { return power != null; }
+    public boolean hasLiquids() { return liquids != null;}
+    public boolean hasCons() { return cons != null; }
 
     public final void writeBase(Writes write){
         write.f(health);
         write.b(rotation());
         write.b(team.id);
-        if(items != null) items.write(write);
-        if(power != null) power.write(write);
-        if(liquids != null) liquids.write(write);
-        if(cons != null) cons.write(write);
+        if(hasItems()) items.write(write);
+        if(hasPower()) power.write(write);
+        if(hasLiquids()) liquids.write(write);
+        if(hasCons()) cons.write(write);
     }
 
     public final void readBase(Reads read){
         health = read.f();
         rotation(read.b());
         team = Team.get(read.b());
-        if(items != null) items.read(read);
-        if(power != null) power.read(read);
-        if(liquids != null) liquids.read(read);
-        if(cons != null) cons.read(read);
+        if(hasItems()) items.read(read);
+        if(hasPower()) power.read(read);
+        if(hasLiquids()) liquids.read(read);
+        if(hasCons()) cons.read(read);
     }
 
     public void writeAll(Writes write){
@@ -257,7 +261,7 @@ abstract class TileComp implements Posc, Teamc, Healthc, Tilec, Timerc, QuadTree
 
     /** Base efficiency. If this entity has non-buffered power, returns the power %, otherwise returns 1. */
     public float efficiency(){
-        return power != null && (block.consumes.has(ConsumeType.power) && !block.consumes.getPower().buffered) ? power.status : 1f;
+        return hasPower() && (block.consumes.has(ConsumeType.power) && !block.consumes.getPower().buffered) ? power.status : 1f;
     }
 
     /** Call when nothing is happening to the entity. This increments the internal sleep timer. */
@@ -315,7 +319,7 @@ abstract class TileComp implements Posc, Teamc, Healthc, Tilec, Timerc, QuadTree
 
     /** Remove a stack from this inventory, and return the amount removed. */
     public int removeStack(Item item, int amount){
-        if(items == null) return 0;
+        if(!hasItems()) return 0;
         amount = Math.min(amount, items.get(item));
         noSleep();
         items.remove(item, amount);
@@ -350,6 +354,7 @@ abstract class TileComp implements Posc, Teamc, Healthc, Tilec, Timerc, QuadTree
      * @param todump payload to dump.
      * @return whether the payload was moved successfully
      */
+
     public boolean dumpPayload(@NonNull Payload todump){
         Array<Tilec> proximity = proximity();
         int dump = rotation();
@@ -438,34 +443,33 @@ abstract class TileComp implements Posc, Teamc, Healthc, Tilec, Timerc, QuadTree
 
         next = next.getLiquidDestination(this, liquid);
 
-        if(next.team() == team() && next.block().hasLiquids && liquids.get(liquid) > 0f){
+        if(!(next.team() == team() && next.block().hasLiquids && liquids.get(liquid) > 0f)) return 0;
 
-            if(next.acceptLiquid(this, liquid, 0f)){
-                float ofract = next.liquids().get(liquid) / next.block().liquidCapacity;
-                float fract = liquids.get(liquid) / block.liquidCapacity * block.liquidPressure;
-                float flow = Math.min(Mathf.clamp((fract - ofract) * (1f)) * (block.liquidCapacity), liquids.get(liquid));
-                flow = Math.min(flow, next.block().liquidCapacity - next.liquids().get(liquid) - 0.001f);
+        if(next.acceptLiquid(this, liquid, 0f)){
+            float ofract = next.liquids().get(liquid) / next.block().liquidCapacity;
+            float fract = liquids.get(liquid) / block.liquidCapacity * block.liquidPressure;
+            float flow = Math.min(Mathf.clamp((fract - ofract) * (1f)) * (block.liquidCapacity), liquids.get(liquid));
+            flow = Math.min(flow, next.block().liquidCapacity - next.liquids().get(liquid) - 0.001f);
 
-                if(flow > 0f && ofract <= fract && next.acceptLiquid(this, liquid, flow)){
-                    next.handleLiquid(this, liquid, flow);
-                    liquids.remove(liquid, flow);
-                    return flow;
-                }else if(ofract > 0.1f && fract > 0.1f){
-                    //TODO these are incorrect effect positions
-                    float fx = (x() + next.x()) / 2f, fy = (y() + next.y()) / 2f;
+            if(flow > 0f && ofract <= fract && next.acceptLiquid(this, liquid, flow)){
+                next.handleLiquid(this, liquid, flow);
+                liquids.remove(liquid, flow);
+                return flow;
+            }else if(ofract > 0.1f && fract > 0.1f){
+                //TODO these are incorrect effect positions
+                float fx = (x() + next.x()) / 2f, fy = (y() + next.y()) / 2f;
 
-                    Liquid other = next.liquids().current();
-                    if((other.flammability > 0.3f && liquid.temperature > 0.7f) || (liquid.flammability > 0.3f && other.temperature > 0.7f)){
-                        damage(1 * Time.delta());
-                        next.damage(1 * Time.delta());
-                        if(Mathf.chance(0.1 * Time.delta())){
-                            Fx.fire.at(fx, fy);
-                        }
-                    }else if((liquid.temperature > 0.7f && other.temperature < 0.55f) || (other.temperature > 0.7f && liquid.temperature < 0.55f)){
-                        liquids.remove(liquid, Math.min(liquids.get(liquid), 0.7f * Time.delta()));
-                        if(Mathf.chance(0.2f * Time.delta())){
-                            Fx.steam.at(fx, fy);
-                        }
+                Liquid other = next.liquids().current();
+                if((other.flammability > 0.3f && liquid.temperature > 0.7f) || (liquid.flammability > 0.3f && other.temperature > 0.7f)){
+                    damage(1 * Time.delta());
+                    next.damage(1 * Time.delta());
+                    if(Mathf.chance(0.1 * Time.delta())){
+                        Fx.fire.at(fx, fy);
+                    }
+                }else if((liquid.temperature > 0.7f && other.temperature < 0.55f) || (other.temperature > 0.7f && liquid.temperature < 0.55f)){
+                    liquids.remove(liquid, Math.min(liquids.get(liquid), 0.7f * Time.delta()));
+                    if(Mathf.chance(0.2f * Time.delta())){
+                        Fx.steam.at(fx, fy);
                     }
                 }
             }
@@ -585,7 +589,7 @@ abstract class TileComp implements Posc, Teamc, Healthc, Tilec, Timerc, QuadTree
     }
 
     public void onProximityRemoved(){
-        if(power != null){
+        if(hasPower()){
             powerGraphRemoved();
         }
     }
@@ -604,7 +608,7 @@ abstract class TileComp implements Posc, Teamc, Healthc, Tilec, Timerc, QuadTree
     }
 
     public void powerGraphRemoved(){
-        if(power == null){
+        if(!hasPower()){
             return;
         }
 
@@ -619,7 +623,7 @@ abstract class TileComp implements Posc, Teamc, Healthc, Tilec, Timerc, QuadTree
 
     public Array<Tilec> getPowerConnections(Array<Tilec> out){
         out.clear();
-        if(power == null) return out;
+        if(!hasPower()) return out;
 
         for(Tilec other : proximity()){
             if(other != null && other.power() != null
@@ -859,7 +863,7 @@ abstract class TileComp implements Posc, Teamc, Healthc, Tilec, Timerc, QuadTree
         if(displayFlow){
             String ps = " " + StatUnit.perSecond.localized();
 
-            if(items != null){
+            if(hasItems()){
                 table.row();
                 table.table(l -> {
                     Bits current = new Bits();
@@ -888,7 +892,7 @@ abstract class TileComp implements Posc, Teamc, Healthc, Tilec, Timerc, QuadTree
                 });
             }
 
-            if(liquids != null){
+            if(hasLiquids()){
                 table.row();
                 table.table(l -> {
                     l.left();
@@ -1081,19 +1085,19 @@ abstract class TileComp implements Posc, Teamc, Healthc, Tilec, Timerc, QuadTree
 
         updateTile();
 
-        if(items != null){
+        if(hasItems()){
             items.update(updateFlow);
         }
 
-        if(liquids != null){
+        if(hasLiquids()){
             liquids.update(updateFlow);
         }
 
-        if(cons != null){
+        if(hasCons()){
             cons.update();
         }
 
-        if(power != null){
+        if(hasPower()){
             power.graph.update();
         }
 

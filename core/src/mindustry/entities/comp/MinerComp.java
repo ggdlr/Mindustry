@@ -32,12 +32,17 @@ abstract class MinerComp implements Itemsc, Posc, Teamc, Rotc, Drawc{
     boolean mining(){
         return mineTile != null;
     }
-
+    boolean dropItem(){
+        return mineTile.drop() != null;
+    }
+    boolean acceptsDroppedItem(){
+        return acceptsItem(mineTile.drop());
+    }
     @Override
     public void update(){
         Tilec core = closestCore();
 
-        if(core != null && mineTile != null && mineTile.drop() != null && !acceptsItem(mineTile.drop()) && dst(core) < mineTransferRange){
+        if(core != null && mining() && dropItem() && !acceptsDroppedItem() && dst(core) < mineTransferRange){
             int accepted = core.acceptStack(item(), stack().amount, this);
             if(accepted > 0){
                 Call.transferItemTo(item(), accepted,
@@ -47,9 +52,9 @@ abstract class MinerComp implements Itemsc, Posc, Teamc, Rotc, Drawc{
             }
         }
 
-        if(mineTile == null || core == null || mineTile.block() != Blocks.air || dst(mineTile.worldx(), mineTile.worldy()) > miningRange
+        if(!mining() || core == null || mineTile.block() != Blocks.air || dst(mineTile.worldx(), mineTile.worldy()) > miningRange
         || (((Object)this) instanceof Builderc && ((Builderc)(Object)this).isBuilding())
-        || mineTile.drop() == null || !acceptsItem(mineTile.drop()) || !canMine(mineTile.drop())){
+        || dropItem() || acceptsDroppedItem() || !canMine(mineTile.drop())){
             mineTile = null;
             mineTimer = 0f;
         }else{

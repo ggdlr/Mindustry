@@ -23,18 +23,20 @@ abstract class FireComp implements Timedc, Posc, Firec{
     Tile tile;
     private Block block;
     private float baseFlammability = -1, puddleFlammability;
-
+    double desiredTime(double d){
+        return d * Time.delta();
+    }
     @Override
     public void update(){
-        if(Mathf.chance(0.1 * Time.delta())){
+        if(Mathf.chance(desiredTime(0.1))){
             Fx.fire.at(x + Mathf.range(4f), y + Mathf.range(4f));
         }
 
-        if(Mathf.chance(0.05 * Time.delta())){
+        if(Mathf.chance(desiredTime(0.05))){
             Fx.fireSmoke.at(x + Mathf.range(4f), y + Mathf.range(4f));
         }
 
-        if(Mathf.chance(0.001 * Time.delta())){
+        if(Mathf.chance(desiredTime(0.001))){
             Sounds.fire.at(this);
         }
 
@@ -77,7 +79,7 @@ abstract class FireComp implements Timedc, Posc, Firec{
             }
         }
 
-        if(Mathf.chance(0.1 * Time.delta())){
+        if(Mathf.chance(desiredTime(0.1))){
             Puddlec p = Puddles.get(tile);
             puddleFlammability = p != null ? p.getFlammability() / 3f : 0;
 
