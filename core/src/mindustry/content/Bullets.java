@@ -407,7 +407,7 @@ public class Bullets implements ContentList{
             healPercent = 5.5f;
         }};
 
-        fireball = new BulletType(1f, 4){
+        fireball = new FireBallBulletType(1f, 4){
             {
                 pierce = true;
                 hitTiles = false;
@@ -416,39 +416,9 @@ public class Bullets implements ContentList{
                 drag = 0.03f;
                 hitEffect = despawnEffect = Fx.none;
             }
-
-            @Override
-            public void init(Bulletc b){
-                b.vel().setLength(0.6f + Mathf.random(2f));
-            }
-
-            @Override
-            public void draw(Bulletc b){
-                Draw.color(Pal.lightFlame, Pal.darkFlame, Color.gray, b.fin());
-                Fill.circle(b.x(), b.y(), 3f * b.fout());
-                Draw.reset();
-            }
-
-            @Override
-            public void update(Bulletc b){
-                if(Mathf.chance(0.04 * Time.delta())){
-                    Tile tile = world.tileWorld(b.x(), b.y());
-                    if(tile != null){
-                        Fires.create(tile);
-                    }
-                }
-
-                if(Mathf.chance(0.1 * Time.delta())){
-                    Fx.fireballsmoke.at(b.x(), b.y());
-                }
-
-                if(Mathf.chance(0.1 * Time.delta())){
-                    Fx.ballfire.at(b.x(), b.y());
-                }
-            }
         };
 
-        basicFlame = new BulletType(3f, 30f){
+        basicFlame = new FlameBulletType(3f, 30f){
             {
                 ammoMultiplier = 3f;
                 hitSize = 7f;
@@ -462,18 +432,9 @@ public class Bullets implements ContentList{
                 status = StatusEffects.burning;
                 keepVelocity = false;
             }
-
-            @Override
-            public float range(){
-                return 50f;
-            }
-
-            @Override
-            public void draw(Bulletc b){
-            }
         };
 
-        pyraFlame = new BulletType(3.3f, 45f){
+        pyraFlame = new FlameBulletType(3.3f, 45f){
             {
                 ammoMultiplier = 4f;
                 hitSize = 7f;
@@ -486,10 +447,6 @@ public class Bullets implements ContentList{
                 despawnEffect = Fx.none;
                 status = StatusEffects.burning;
             }
-
-            @Override
-            public void draw(Bulletc b){
-            }
         };
 
         lancerLaser = new LaserBulletType(140){{
@@ -501,14 +458,7 @@ public class Bullets implements ContentList{
             drawSize = 400f;
         }};
 
-        meltdownLaser = new BulletType(0.001f, 70){
-            Color tmpColor = new Color();
-            Color[] colors = {Color.valueOf("ec745855"), Color.valueOf("ec7458aa"), Color.valueOf("ff9c5a"), Color.white};
-            float[] tscales = {1f, 0.7f, 0.5f, 0.2f};
-            float[] strokes = {2f, 1.5f, 1f, 0.3f};
-            float[] lenscales = {1f, 1.12f, 1.15f, 1.17f};
-            float length = 220f;
-
+        meltdownLaser = new MeltDownLaserType(0.001f, 70){
             {
                 hitEffect = Fx.hitMeltdown;
                 despawnEffect = Fx.none;
@@ -516,42 +466,6 @@ public class Bullets implements ContentList{
                 drawSize = 420f;
                 lifetime = 16f;
                 pierce = true;
-            }
-
-            @Override
-            public void update(Bulletc b){
-                if(b.timer(1, 5f)){
-                    Damage.collideLine(b, b.team(), hitEffect, b.x(), b.y(), b.rotation(), length, true);
-                }
-                Effects.shake(1f, 1f, b.x(), b.y());
-            }
-
-            @Override
-            public void hit(Bulletc b, float hitx, float hity){
-                hitEffect.at(hitx, hity, colors[2]);
-                if(Mathf.chance(0.4)){
-                    Fires.create(world.tileWorld(hitx + Mathf.range(5f), hity + Mathf.range(5f)));
-                }
-            }
-
-            @Override
-            public void draw(Bulletc b){
-                float baseLen = (length) * b.fout();
-
-                Lines.lineAngle(b.x(), b.y(), b.rotation(), baseLen);
-                for(int s = 0; s < colors.length; s++){
-                    Draw.color(tmpColor.set(colors[s]).mul(1f + Mathf.absin(Time.time(), 1f, 0.1f)));
-                    for(int i = 0; i < tscales.length; i++){
-                        Tmp.v1.trns(b.rotation() + 180f, (lenscales[i] - 1f) * 35f);
-                        Lines.stroke((9f + Mathf.absin(Time.time(), 0.8f, 1.5f)) * b.fout() * strokes[s] * tscales[i]);
-                        Lines.lineAngle(b.x() + Tmp.v1.x, b.y() + Tmp.v1.y, b.rotation(), baseLen * lenscales[i], CapStyle.none);
-                    }
-                }
-
-                Tmp.v1.trns(b.rotation(), baseLen * 1.1f);
-
-                Drawf.light(b.x(), b.y(), b.x() + Tmp.v1.x, b.y() + Tmp.v1.y, 40, Color.orange, 0.7f);
-                Draw.reset();
             }
         };
 
@@ -579,7 +493,7 @@ public class Bullets implements ContentList{
             drag = 0.03f;
         }};
 
-        lightning = new BulletType(0.001f, 12f){
+        lightning = new LightningType(0.001f, 12f){
             {
                 lifetime = 1f;
                 shootEffect = Fx.hitLancer;
@@ -587,20 +501,6 @@ public class Bullets implements ContentList{
                 despawnEffect = Fx.none;
                 hitEffect = Fx.hitLancer;
                 keepVelocity = false;
-            }
-
-            @Override
-            public float range(){
-                return 70f;
-            }
-
-            @Override
-            public void draw(Bulletc b){
-            }
-
-            @Override
-            public void init(Bulletc b){
-                Lightning.create(b.team(), Pal.lancerLaser, damage * (b.owner().isLocal() ? state.rules.playerDamageMultiplier : 1f), b.x(), b.y(), b.rotation(), 30);
             }
         };
 
