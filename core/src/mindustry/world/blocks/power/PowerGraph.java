@@ -25,6 +25,16 @@ public class PowerGraph{
     private final int graphID;
     private static int lastGraphID;
 
+    //below functions are for a testing
+    public int getLastGraphID() { return lastGraphID;}
+    public void changeLastPowerProduced(float f) { lastPowerProduced = f;}
+    public void changeLastPowerNeeded(float f) { lastPowerNeeded = f;}
+    public ObjectSet<Tilec> getProducers() { return producers;}
+    public ObjectSet<Tilec> getConsumers() { return consumers;}
+    public ObjectSet<Tilec> getBatteries() { return batteries;}
+    public ObjectSet<Tilec> getAll() { return all;}
+    public long getLastFrameUpdated() { return lastFrameUpdated;}
+
     {
         graphID = lastGraphID++;
     }
